@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>3×3 ネスト部屋の脱出（1000Gでスタートに帰還）</title>
+<style>
+  :root{
+    --bg1:#0a0f1f; --bg2:#151831; --glass:rgba(255,255,255,.08); --glass2:rgba(255,255,255,.14);
+    --accent:#67e8f9; --violet:#a78bfa; --gold:#facc15; --ink:#e8eeff; --danger:#ef4444; --ok:#22c55e;
+    --shadow:0 10px 30px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0; color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+    background: radial-gradient(1200px 800px at 20% 10%, #1b2146 0%, transparent 60%),
+                radial-gradient(1000px 900px at 100% 0%, #251c44 0%, transparent 60%),
+                linear-gradient(135deg, var(--bg1), var(--bg2));}
+  .wrap{min-height:100%; display:grid; place-items:center; padding:20px}
+  .frame{width:min(900px,96vw); border-radius:24px; padding:clamp(16px,2.2vw,28px); backdrop-filter:blur(12px);
+    background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.12); box-shadow:var(--shadow)}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .title{display:flex; align-items:center; gap:12px}
+  .logo{width:40px; height:40px; border-radius:12px; background:conic-gradient(from 210deg, var(--accent), var(--violet)); box-shadow:0 10px 24px rgba(103,232,249,.35)}
+  h1{font-size:clamp(18px,2.2vw,24px); margin:0; letter-spacing:.06em}
+  .controls{display:flex; gap:10px; flex-wrap:wrap}
+  .btn{appearance:none; border:none; border-radius:12px; padding:10px 14px; font-weight:700; letter-spacing:.04em; cursor:pointer;
+    background:linear-gradient(180deg, var(--glass2), var(--glass)); color:#e9f5ff; border:1px solid rgba(255,255,255,.16); box-shadow:var(--shadow); transition:.25s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn.secondary{background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05))}
+  .btn.gold{background:linear-gradient(180deg, rgba(250,204,21,.25), rgba(250,204,21,.10)); color:#1a1400; border-color:rgba(250,204,21,.5)}
+  .btn:disabled{opacity:.55; cursor:not-allowed}
+
+  .panel{display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; margin:10px 0 20px}
+  .stats{display:flex; gap:10px; flex-wrap:wrap}
+  .chip{padding:8px 10px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05)); border:1px solid rgba(255,255,255,.14)}
+
+  .board{width:min(640px, 92vw); aspect-ratio:1/1; margin-inline:auto; display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+    padding:14px; border-radius:24px; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); border:1px solid rgba(255,255,255,.16); box-shadow:var(--shadow)}
+  .cell{position:relative; border-radius:16px; overflow:hidden; isolation:isolate; cursor:pointer;
+    background: radial-gradient(120px 120px at 30% 20%, rgba(255,255,255,.18), transparent 55%), linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+    border:1px solid rgba(255,255,255,.18); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 8px 18px rgba(0,0,0,.25); transition:.18s}
+  .cell:hover{transform:translateY(-2px)}
+  .cell .label{position:absolute; left:10px; top:10px; font-size:12px; opacity:.9; letter-spacing:.06em}
+  .cell .center{position:absolute; inset:0; display:grid; place-items:center; font-weight:900; font-size:clamp(26px,6vw,42px); letter-spacing:.05em}
+  .tag{position:absolute; right:10px; top:10px; font-size:11px; padding:4px 6px; border-radius:999px; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.2)}
+  .door{outline:2px solid var(--violet); box-shadow: inset 0 0 0 8px rgba(167,139,250,.10)}
+  .gold{outline:2px solid var(--gold); box-shadow: inset 0 0 0 8px rgba(250,204,21,.10)}
+  .empty{filter:saturate(.9) contrast(.95) brightness(.98)}
+
+  .crumbs{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+  .crumb{padding:6px 8px; border-radius:8px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14)}
+
+  footer{margin-top:14px; opacity:.9; font-size:13px}
+  details{margin-top:6px}
+  summary{cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="frame">
+      <header>
+        <div class="title">
+          <div class="logo" aria-hidden="true"></div>
+          <h1>3×3 ネスト部屋の脱出</h1>
+        </div>
+        <div class="controls">
+          <button class="btn" id="backBtn" disabled>1 個前に戻る</button>
+          <button class="btn secondary" id="newWorldBtn">新しい世界</button>
+          <button class="btn gold" id="hintBtn">ヒント</button>
+        </div>
+      </header>
+
+      <div class="panel">
+        <div class="stats">
+          <span class="chip">いま：<b id="roomName">-</b></span>
+          <span class="chip">所持：<b id="gold">0 G</b></span>
+          <span class="chip">目標：<b>50000 G を貯めて A に帰還</b></span>
+          <span class="chip">手数：<b id="steps">0</b></span>
+        </div>
+        <div class="crumbs" id="crumbs"></div>
+      </div>
+
+      <div class="board" id="board" role="grid" aria-label="3×3 の部屋"></div>
+
+      <footer>
+        <details>
+          <summary>遊び方</summary>
+          <ul>
+            <li>各部屋は 3×3。文字（A/B/C...）のマスは「扉」で、その文字の部屋へ入ります。</li>
+            <li>たまに <b>10～80G</b> が落ちています。クリックで拾って所持金に加算。</li>
+            <li><b>50000G</b> 以上集めて、スタートの <b>A</b> に戻ればクリア（手数を競う）。</li>
+            <li>「1 個前に戻る」で直前の部屋に戻れます。保存は行いません。</li>
+          </ul>
+        </details>
+      </footer>
+    </div>
+  </div>
+
+<script>
+(()=>{
+  const boardEl = document.getElementById('board');
+  const roomNameEl = document.getElementById('roomName');
+  const goldEl  = document.getElementById('gold');
+  const stepsEl= document.getElementById('steps');
+  const crumbsEl = document.getElementById('crumbs');
+  const backBtn = document.getElementById('backBtn');
+  const newWorldBtn = document.getElementById('newWorldBtn');
+  const hintBtn = document.getElementById('hintBtn');
+
+  // ゲーム状態
+  const SIZE = 3;
+  let world;      // { rooms: Map<id, Room>, start: 'A' }
+  let hereId;     // 現在の部屋ID
+  let history=[]; // 部屋IDのスタック
+  let steps=0;    // 入退室の手数
+  let gold=0;     // 所持金
+  let usedLetters = new Set();
+
+  function newWorld(){
+    world = { rooms: new Map(), start: 'A' };
+    usedLetters = new Set(['A']);
+    history.length = 0; steps=0; gold=0;
+    // スタート部屋
+    const a = genRoom('A', true);
+    world.rooms.set('A', a);
+    hereId='A';
+    render();
+  }
+
+  function rand(n){return Math.floor(Math.random()*n)}
+  function randBetween(min,max){return min + Math.floor(Math.random()*(max-min+1))}
+
+  function nextLetter(){
+    // A..Z → ZA.. 循環風に増やす
+    const A = 'A'.charCodeAt(0);
+    for(let i=0;i<26;i++){
+      const ch = String.fromCharCode(A+i);
+      if(!usedLetters.has(ch)) return ch;
+    }
+    let i=1; while(true){
+      const ch = 'R'+(i++); if(!usedLetters.has(ch)) return ch;
+    }
+  }
+
+  function emptyGrid(){
+    const g = Array.from({length:SIZE},()=>Array.from({length:SIZE},()=>({type:'empty', label:'空'})));
+    // 念のため、必ず3x3を満たす（不具合対策）
+    if(g.length!==SIZE || g.some(row=>row.length!==SIZE)){
+      return [ [ {type:'empty',label:'空'}, {type:'empty',label:'空'}, {type:'empty',label:'空'} ],
+               [ {type:'empty',label:'空'}, {type:'empty',label:'空'}, {type:'empty',label:'空'} ],
+               [ {type:'empty',label:'空'}, {type:'empty',label:'空'}, {type:'empty',label:'空'} ] ];
+    }
+    return g;
+  }
+
+  function genRoom(id, isStart=false){
+    usedLetters.add(id);
+    const grid = emptyGrid();
+
+    // 扉を2~4個（スタートは多め）
+    const doorCount = isStart? 2+rand(2) : 1+rand(3);
+    for(let i=0;i<doorCount;i++){
+      const [r,c] = findEmpty(grid); if(!r && r!==0) break;
+      const nid = nextLetter(); usedLetters.add(nid);
+      grid[r][c] = {type:'door', to:nid, label:nid};
+    }
+
+    // GOLD：確率で0~3個、10~80G
+    const goldCount = rand(4); // 0..3
+    for(let i=0;i<goldCount;i++){
+      const pos = findEmpty(grid); if(!pos) break; const [r,c]=pos;
+      const value = randBetween(10,80);
+      grid[r][c] = {type:'gold', value, label:value+'G'};
+    }
+
+    // 戻る扉（←）を1個置く（Aには置かない）
+    if(!isStart){
+      placeReturnDoor({grid});
+    }
+
+    return { id, title: id+' の部屋', grid };
+  }
+
+  function findEmpty(grid){
+    const empties=[]; for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(grid[r][c].type==='empty') empties.push([r,c]);
+    if(!empties.length) return null; return empties[rand(empties.length)];
+  }
+
+  function ensureRoom(id){
+    if(!world.rooms.has(id)){
+      const r = genRoom(id);
+      world.rooms.set(id, r);
+    }
+    return world.rooms.get(id);
+  }
+
+  function placeReturnDoor(room){
+    const pos = findEmpty(room.grid); if(!pos) return;
+    const [r,c] = pos; room.grid[r][c] = {type:'door', to:null, label:'←', back:true};
+  }
+
+  function maybeSpawnGold(room){
+    // 入室時に時々ゴールドを1個スポーン（空きがあるとき）
+    if(Math.random()<0.3){
+      const pos = findEmpty(room.grid); if(pos){
+        const [r,c]=pos; const value = randBetween(10,80);
+        room.grid[r][c] = {type:'gold', value, label:value+'G'};
+      }
+    }
+  }
+
+  function render(){
+    const room = ensureRoom(hereId);
+    maybeSpawnGold(room);
+    roomNameEl.textContent = room.title;
+
+    // 3x3 を強制（不具合対策）
+    if(!Array.isArray(room.grid) || room.grid.length!==SIZE || room.grid.some(row=>row.length!==SIZE)){
+      room.grid = emptyGrid();
+    }
+
+    boardEl.innerHTML='';
+    crumbsEl.innerHTML = '';
+    const crumbs = ['A', ...history.slice(0), hereId];
+    for(const id of crumbs){
+      const span = document.createElement('span'); span.className='crumb'; span.textContent = id; crumbsEl.appendChild(span);
+    }
+
+    for(let r=0;r<SIZE;r++){
+      for(let c=0;c<SIZE;c++){
+        const cell = document.createElement('button'); cell.className='cell'; cell.dataset.r=r; cell.dataset.c=c; cell.addEventListener('click', onCellClick);
+        const tag = document.createElement('div'); tag.className='tag'; const center = document.createElement('div'); center.className='center';
+        const info = room.grid[r][c];
+        if(info.type==='door'){
+          cell.classList.add('door'); tag.textContent='扉'; center.textContent = info.label;
+        } else if(info.type==='gold'){
+          cell.classList.add('gold'); tag.textContent='GOLD'; center.textContent = info.label;
+        } else { cell.classList.add('empty'); tag.textContent='空'; center.textContent='·'; }
+        const label = document.createElement('div'); label.className='label'; label.textContent=`${r+1}-${c+1}`;
+        cell.appendChild(label); cell.appendChild(tag); cell.appendChild(center); boardEl.appendChild(cell);
+      }
+    }
+
+    stepsEl.textContent = steps;
+    backBtn.disabled = history.length===0;
+    goldEl.textContent = `${gold} G`;
+
+    checkWin();
+  }
+
+  function onCellClick(e){
+    const room = ensureRoom(hereId);
+    const r = +e.currentTarget.dataset.r, c=+e.currentTarget.dataset.c;
+    const info = room.grid[r][c];
+    if(info.type==='door'){
+      if(info.back){ goBack(); return; }
+      enter(info.to); return;
+    }
+    if(info.type==='gold'){
+      gold += info.value;
+      room.grid[r][c] = {type:'empty', label:'空'};
+      render();
+      return;
+    }
+    // 空
+  }
+
+  function enter(id){
+    history.push(hereId);
+    steps++;
+    hereId = id;
+    render();
+  }
+
+  function goBack(){
+    if(history.length===0) return;
+    hereId = history.pop();
+    steps++;
+    render();
+  }
+
+  function checkWin(){
+    if(hereId==='A' && gold>=50000){
+      setTimeout(()=>{
+        alert(`クリア！ 所持 ${gold}G / 手数 ${steps}`);
+      }, 30);
+    }
+  }
+
+  // UI events
+  backBtn.addEventListener('click', goBack);
+  newWorldBtn.addEventListener('click', newWorld);
+  hintBtn.addEventListener('click', ()=>{
+    alert(`ヒント：扉を渡り歩いて 10~80G を集め、50000G 貯まったら A に戻ろう！`);
+  });
+
+  // 初期化
+  newWorld();
+})();
+</script>
+</body>
+</html>
