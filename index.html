@@ -76,7 +76,7 @@
         <div class="stats">
           <span class="chip">いま：<b id="roomName">-</b></span>
           <span class="chip">所持：<b id="gold">0 G</b></span>
-          <span class="chip">目標：<b>50000 G を貯めて A に帰還</b></span>
+          <span class="chip">目標：<b>20000 G を貯めて A に帰還</b></span>
           <span class="chip">手数：<b id="steps">0</b></span>
         </div>
         <div class="crumbs" id="crumbs"></div>
@@ -90,7 +90,7 @@
           <ul>
             <li>各部屋は 3×3。文字（A/B/C...）のマスは「扉」で、その文字の部屋へ入ります。</li>
             <li>たまに <b>10～80G</b> が落ちています。クリックで拾って所持金に加算。</li>
-            <li><b>50000G</b> 以上集めて、スタートの <b>A</b> に戻ればクリア（手数を競う）。</li>
+            <li><b>20000G</b> 以上集めて、スタートの <b>A</b> に戻ればクリア（手数を競う）。</li>
             <li>「1 個前に戻る」で直前の部屋に戻れます。保存は行いません。</li>
           </ul>
         </details>
@@ -282,7 +282,7 @@
   }
 
   function checkWin(){
-    if(hereId==='A' && gold>=50000){
+    if(hereId==='A' && gold>=20000){
       setTimeout(()=>{
         alert(`クリア！ 所持 ${gold}G / 手数 ${steps}`);
       }, 30);
@@ -293,7 +293,7 @@
   backBtn.addEventListener('click', goBack);
   newWorldBtn.addEventListener('click', newWorld);
   hintBtn.addEventListener('click', ()=>{
-    alert(`ヒント：扉を渡り歩いて 10~80G を集め、50000G 貯まったら A に戻ろう！`);
+    alert(`ヒント：扉を渡り歩いて 10~80G を集め、20000G 貯まったら A に戻ろう！`);
   });
 
   // 初期化
@@ -302,3 +302,4 @@
 </script>
 </body>
 </html>
+
